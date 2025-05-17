@@ -4,7 +4,15 @@
 
 According to https://solana.com/docs/intro/installation
 
+## Setup
+Setup Biome
+https://biomejs.dev/guides/getting-started/
+
+
 ## Error
+### anchor test not wait for solana-test-validator #3624
+https://github.com/solana-foundation/anchor/issues/3624
+
 ### no method named `file` found for reference `&proc_macro::Span` in the current scope
 use the following version:
 ```

@@ -6,5 +6,15 @@ node_modules
 test-ledger
 .yarn
 justfile
-.env
+dist/
+.idea/
+.env*
 aarchives
+examples
+removed.rs
+toBeAdded.rs
+AnchorBk.toml
+zz*.sh
+cicd*
+backendFunc/
+# Remove Cargo.lock from gitignore if creating an executable,

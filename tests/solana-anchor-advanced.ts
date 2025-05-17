@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import type { Program } from "@coral-xyz/anchor";
 import type { AnchorAdvanced } from "../target/types/anchor_advanced";
 
-describe("solana-anchor-advanced", () => {
+describe("anchor-advanced", () => {
 	// Configure the client to use the local cluster.
 	anchor.setProvider(anchor.AnchorProvider.env());
 
