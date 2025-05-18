@@ -25,8 +25,8 @@ wallet = "~/.config/solana/id.json"
 #cluster = "Mainnet"
 
 [test]
-#startup_wait = 5000
-#shutdown_wait = 2000
+startup_wait = 5000
+shutdown_wait = 2000
 #upgradeable = false
 
 [scripts]
