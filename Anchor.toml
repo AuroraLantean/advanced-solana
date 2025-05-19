@@ -31,5 +31,5 @@ shutdown_wait = 2000
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
-#test = "bun run ts-mocha -p ./tsconfig.json -t 1000000 tests/test1.ts"
+#test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/test1.ts"
 #RUST_LOG=

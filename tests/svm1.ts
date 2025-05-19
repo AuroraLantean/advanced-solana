@@ -14,22 +14,51 @@ import {
 	Keypair,
 	LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
-import { expect } from "chai";
-
-const ll = console.log;
+import { assert, expect } from "chai";
+import { bn, type ConfigT, getConfigAcct, ll } from "./utils.ts";
+let configAcct: ConfigT;
 
 describe("Svm", () => {
-	anchor.setProvider(anchor.AnchorProvider.env());
+	const provider = anchor.AnchorProvider.env();
+	anchor.setProvider(provider);
 	const program = anchor.workspace.anchorAdvanced as Program<AnchorAdvanced>;
+	const wallet = provider.wallet as anchor.Wallet;
 
 	const svm = new LiteSVM(); //by default the LiteSVM instance includes some core programs such as the System Program and SPL Token.
-	const payer = new Keypair();
-	svm.airdrop(payer.publicKey, BigInt(LAMPORTS_PER_SOL));
-	const receiver = PublicKey.unique();
+	ll(
+		`provider wallet: ${wallet.publicKey}, balance:	${svm.getBalance(wallet.publicKey)}`,
+	);
+	const pgid = program.programId;
+	const configPbk = getConfigAcct(pgid, "config");
 
-	it("Is initialized!", async () => {
-		const tx = await program.methods.initialize().rpc();
+	const adamKp = new Keypair();
+	const adam = adamKp.publicKey;
+	svm.airdrop(adam, BigInt(LAMPORTS_PER_SOL * 100));
+
+	const receiver = PublicKey.unique();
+	const deadline = 1735689600;
+
+	it("init_config", async () => {
+		//const keypair = adamKp;
+		//const auth = keypair.publicKey;
+		const tx = await program.methods
+			.initConfig(deadline)
+			/*.accounts({
+				//config: configPbk,
+				auth,
+			})
+			.signers([keypair])*/
+			.rpc();
 		ll("txn signature", tx);
+		configAcct = await program.account.config.fetch(configPbk);
+		ll("configAcct:", JSON.stringify(configAcct));
+		assert(configAcct.owner.equals(wallet.publicKey));
+		assert.ok(configAcct.deadline === deadline);
+
+		ll("configAcct.deposit:", configAcct.deposit); // prints <BN: 0>
+		ll("anchor.BN", anchor.BN); // prints undefined !!??
+		const balcExpected = new anchor.BN(0); //failed here: TypeError: anchor.BN is not a constructor
+		assert.ok(configAcct.deposit.eq(balcExpected));
 	});
 
 	it("sending SOL", async () => {
@@ -37,7 +66,7 @@ describe("Svm", () => {
 		const amtLamports = 1_000_000n;
 		const ixs = [
 			SystemProgram.transfer({
-				fromPubkey: payer.publicKey,
+				fromPubkey: adamKp.publicKey,
 				toPubkey: receiver,
 				lamports: amtLamports,
 			}),
@@ -45,7 +74,7 @@ describe("Svm", () => {
 		const tx = new Transaction();
 		tx.recentBlockhash = blockhash;
 		tx.add(...ixs);
-		tx.sign(payer);
+		tx.sign(adamKp);
 		svm.sendTransaction(tx);
 		const balanceAfter = svm.getBalance(receiver);
 		expect(balanceAfter).eq(amtLamports);
@@ -54,7 +83,7 @@ describe("Svm", () => {
 	it("time travel", async () => {
 		const initialClock = svm.getClock();
 		ll("initialClock:", initialClock.unixTimestamp);
-		initialClock.unixTimestamp = 1735689600n;
+		initialClock.unixTimestamp = BigInt(deadline);
 		svm.setClock(initialClock);
 		const newClock = svm.getClock();
 		ll("newClock:", newClock.unixTimestamp);

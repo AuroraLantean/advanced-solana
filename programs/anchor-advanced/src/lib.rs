@@ -21,6 +21,7 @@ pub mod anchor_advanced {
 
   pub fn init_config(ctx: Context<InitConfig>, deadline: u32) -> Result<()> {
     msg!("init_config: {:?}", ctx.program_id);
+    //ctx: {program_id, accounts, bumps}
     let config = &mut ctx.accounts.config;
     config.owner = ctx.accounts.auth.key();
     config.deadline = deadline;
@@ -28,6 +29,7 @@ pub mod anchor_advanced {
   }
 }
 
+//The discriminator is the first 8 bytes of the SHA256 hash of the string account:<AccountName>. This discriminator is stored as the first 8 bytes of account data when an account is created.
 #[derive(Accounts)]
 pub struct InitConfig<'info> {
   #[account(
