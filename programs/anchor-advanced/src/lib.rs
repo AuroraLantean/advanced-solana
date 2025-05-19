@@ -1,7 +1,13 @@
 #![allow(unexpected_cfgs)]
 use anchor_lang::prelude::*;
+//use anchor_spl::token::TokenAccount;
 
 declare_id!("8WztRFKZTfdSU2J7zGX9JpGDBpBqFqEMjNRQRW9SPRSJ");
+
+const USDT_MINT: &str = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
+const USDC_MINT: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+
+pub const CONFIG: &[u8; 11] = b"proj_config";
 
 fn solana_time() -> Result<u32> {
   let clock = Clock::get().expect("clock time failed");
@@ -13,16 +19,40 @@ fn solana_time() -> Result<u32> {
 pub mod anchor_advanced {
   use super::*;
 
-  pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-    msg!("Greetings from: {:?}", ctx.program_id);
+  pub fn init_config(ctx: Context<InitConfig>, deadline: u32) -> Result<()> {
+    msg!("init_config: {:?}", ctx.program_id);
+    let config = &mut ctx.accounts.config;
+    config.owner = ctx.accounts.auth.key();
+    config.deadline = deadline;
     Ok(())
   }
 }
-/* TODO:
-let time = solana_time()?;
-require!(time >= lottery.start_time, ErrorCode::LotteryNotStarted);
 
-quotient = numerator.div_cell(u128::from(total_denomonator));
-*/
 #[derive(Accounts)]
-pub struct Initialize {}
+pub struct InitConfig<'info> {
+  #[account(
+        init,
+        payer = auth,
+        space = 8 + Config::INIT_SPACE,
+        seeds = [CONFIG],
+        bump
+    )]
+  pub config: Account<'info, Config>,
+  #[account(mut)]
+  pub auth: Signer<'info>,
+  pub system_program: Program<'info, System>,
+}
+#[account]
+#[derive(InitSpace)]
+pub struct Config {
+  pub owner: Pubkey,
+  pub deadline: u32,
+  pub deposit: u64,
+}
+
+#[error_code]
+pub enum ErrorCode {
+  // Error code: 6001
+  #[msg("after deadline")]
+  AfterDeadline,
+}
