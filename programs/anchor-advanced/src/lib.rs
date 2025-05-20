@@ -12,7 +12,7 @@ pub const CONFIG: &[u8; 11] = b"proj_config";
 fn solana_time() -> Result<u32> {
   let clock = Clock::get().expect("clock time failed");
   let time = clock.unix_timestamp as u32;
-  msg!("Solana time:{:?}", time);
+  msg!("Solana time:{:?}, slot:{:?}", time, clock.slot);
   Ok(time)
 }
 #[program]
@@ -27,8 +27,24 @@ pub mod anchor_advanced {
     config.deadline = deadline;
     Ok(())
   }
+  pub fn pay_sol(ctx: Context<PaySol>, amt: u64) -> Result<()> {
+    msg!("pay_sol()...");
+    let config = &mut ctx.accounts.config;
+    let time = solana_time()?;
+    require!(time < config.deadline, ErrorCode::AfterDeadline);
+    config.deposit += amt;
+    // quotient = numerator.div_cell(u128::from(total_denomonator));
+    Ok(())
+  }
 }
-
+#[derive(Accounts)]
+pub struct PaySol<'info> {
+  #[account(mut, seeds = [CONFIG], bump)]
+  pub config: Account<'info, Config>,
+  //pub mint: InterfaceAccount<'info, Mint>,
+  //pub token_acct: Account<'info, TokenAccount>,
+  pub user: Signer<'info>,
+}
 //The discriminator is the first 8 bytes of the SHA256 hash of the string account:<AccountName>. This discriminator is stored as the first 8 bytes of account data when an account is created.
 #[derive(Accounts)]
 pub struct InitConfig<'info> {
@@ -54,7 +70,7 @@ pub struct Config {
 
 #[error_code]
 pub enum ErrorCode {
-  // Error code: 6001
+  // Error code: 6000
   #[msg("after deadline")]
   AfterDeadline,
 }

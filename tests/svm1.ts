@@ -2,6 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import type { Program } from "@coral-xyz/anchor";
 import type { AnchorAdvanced } from "../target/types/anchor_advanced.js";
 import {
+	Clock,
 	LiteSVM,
 	TransactionMetadata,
 	FailedTransactionMetadata,
@@ -16,7 +17,11 @@ import {
 } from "@solana/web3.js";
 import { assert, expect } from "chai";
 import { bn, type ConfigT, getConfigAcct, ll } from "./utils.ts";
+
 let configAcct: ConfigT;
+let keypair: Keypair;
+let amount: number;
+let tx: string;
 
 describe("Svm", () => {
 	const provider = anchor.AnchorProvider.env();
@@ -36,12 +41,12 @@ describe("Svm", () => {
 	svm.airdrop(adam, BigInt(LAMPORTS_PER_SOL * 100));
 
 	const receiver = PublicKey.unique();
-	const deadline = 1735689600;
+	const deadline = 1767139200;
 
 	it("init_config", async () => {
 		//const keypair = adamKp;
 		//const auth = keypair.publicKey;
-		const tx = await program.methods
+		tx = await program.methods
 			.initConfig(deadline)
 			/*.accounts({
 				//config: configPbk,
@@ -49,15 +54,14 @@ describe("Svm", () => {
 			})
 			.signers([keypair])*/
 			.rpc();
-		ll("txn signature", tx);
+		ll("init:", tx);
 		configAcct = await program.account.config.fetch(configPbk);
-		ll("configAcct:", JSON.stringify(configAcct));
+		//ll("configAcct:", JSON.stringify(configAcct));
 		assert(configAcct.owner.equals(wallet.publicKey));
 		assert.ok(configAcct.deadline === deadline);
 
-		ll("configAcct.deposit:", configAcct.deposit); // prints <BN: 0>
-		ll("anchor.BN", anchor.BN); // prints undefined !!??
-		const balcExpected = new anchor.BN(0); //failed here: TypeError: anchor.BN is not a constructor
+		ll("configAcct.deposit:", configAcct.deposit);
+		const balcExpected = bn(0);
 		assert.ok(configAcct.deposit.eq(balcExpected));
 	});
 
@@ -81,12 +85,37 @@ describe("Svm", () => {
 	});
 
 	it("time travel", async () => {
-		const initialClock = svm.getClock();
-		ll("initialClock:", initialClock.unixTimestamp);
-		initialClock.unixTimestamp = BigInt(deadline);
-		svm.setClock(initialClock);
-		const newClock = svm.getClock();
-		ll("newClock:", newClock.unixTimestamp);
+		const clock = svm.getClock();
+		ll("clock:", clock.slot, clock.unixTimestamp);
+
+		keypair = adamKp;
+		amount = 100;
+		tx = await program.methods
+			.paySol(bn(amount))
+			.accounts({
+				//config: configPbk,
+				user: keypair.publicKey,
+			})
+			.signers([keypair])
+			.rpc();
+		ll("paySol tx:", tx);
+
+		clock.unixTimestamp = BigInt(deadline);
+		svm.setClock(clock);
+		svm.warpToSlot(1000n);
+		const clock1 = svm.getClock();
+		ll("clock1:", clock1.slot, clock1.unixTimestamp);
+
+		tx = await program.methods
+			.paySol(bn(amount))
+			.accounts({
+				//config: configPbk,
+				user: keypair.publicKey,
+			})
+			.signers([keypair])
+			.rpc();
+		ll("paySol tx:", tx);
+
 		//const success = svm.sendTransaction(tx2);
 		//expect(success).instanceOf(TransactionMetadata);
 	});

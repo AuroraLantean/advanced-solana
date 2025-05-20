@@ -1,9 +1,9 @@
-import * as anchor from "@coral-xyz/anchor";
+import type * as anchor from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
+import { BN } from "bn.js";
 
 export const ll = console.log;
-export const bn = (num: number | string | anchor.BN): anchor.BN =>
-	new anchor.BN(num);
+export const bn = (num: number | string) => new BN(num);
 
 export type ConfigT = {
 	owner: PublicKey;

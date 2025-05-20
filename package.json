@@ -10,7 +10,7 @@
     "@coral-xyz/anchor": "^0.31.1",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.2",
-    "bignumber.js": "^9.3.0"
+    "bn.js": "^5.2.2"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
@@ -20,7 +20,7 @@
     "@types/mocha": "^10.0.10",
     "chai": "^5.2.0",
     "litesvm": "^0.2.0",
-    "mocha": "^11.3.0",
+    "mocha": "^11.4.0",
     "ts-mocha": "^11.1.0",
     "typescript": "5.8.3"
   },
