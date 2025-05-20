@@ -15,13 +15,20 @@ import {
 	Keypair,
 	LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
-import { assert, expect } from "chai";
+import {
+	getAssociatedTokenAddressSync,
+	AccountLayout,
+	ACCOUNT_SIZE,
+	TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
+import { expect } from "chai";
 import { bn, type ConfigT, getConfigAcct, ll } from "./utils.ts";
 
 let configAcct: ConfigT;
 let keypair: Keypair;
 let amount: number;
 let tx: string;
+const usdcMint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
 describe("Svm", () => {
 	const provider = anchor.AnchorProvider.env();
@@ -57,12 +64,12 @@ describe("Svm", () => {
 		ll("init:", tx);
 		configAcct = await program.account.config.fetch(configPbk);
 		//ll("configAcct:", JSON.stringify(configAcct));
-		assert(configAcct.owner.equals(wallet.publicKey));
-		assert.ok(configAcct.deadline === deadline);
+		expect(configAcct.owner.equals(wallet.publicKey));
+		expect(configAcct.deadline).equals(deadline);
 
 		ll("configAcct.deposit:", configAcct.deposit);
 		const balcExpected = bn(0);
-		assert.ok(configAcct.deposit.eq(balcExpected));
+		expect(configAcct.deposit.eq(balcExpected));
 	});
 
 	it("sending SOL", async () => {
@@ -118,5 +125,44 @@ describe("Svm", () => {
 
 		//const success = svm.sendTransaction(tx2);
 		//expect(success).instanceOf(TransactionMetadata);
+	});
+
+	it("set token amount", async () => {
+		const owner = adam; //PublicKey.unique();
+		const amtUSDC = 1_000_000_000_000n;
+		const amtLamports = 1 * LAMPORTS_PER_SOL;
+		ll("amtUSDC:", amtUSDC);
+
+		const ata = getAssociatedTokenAddressSync(usdcMint, owner, true);
+		const tokenAccData = Buffer.alloc(ACCOUNT_SIZE);
+		AccountLayout.encode(
+			{
+				mint: usdcMint,
+				owner,
+				amount: amtUSDC,
+				delegateOption: 0,
+				delegate: PublicKey.default,
+				delegatedAmount: 0n,
+				state: 1,
+				isNativeOption: 0,
+				isNative: 0n,
+				closeAuthorityOption: 0,
+				closeAuthority: PublicKey.default,
+			},
+			tokenAccData,
+		);
+		//const svm = new LiteSVM();
+		svm.setAccount(ata, {
+			lamports: amtLamports,
+			data: tokenAccData,
+			owner: TOKEN_PROGRAM_ID,
+			executable: false,
+		});
+		const rawAccount = svm.getAccount(ata);
+		expect(rawAccount).not.null;
+		const rawAccountData = rawAccount?.data;
+		const decoded = AccountLayout.decode(rawAccountData);
+		ll("decoded.amount:", decoded.amount);
+		expect(decoded.amount).eq(amtUSDC);
 	});
 });
