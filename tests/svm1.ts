@@ -45,10 +45,14 @@ describe("Svm", () => {
 
 	const adamKp = new Keypair();
 	const adam = adamKp.publicKey;
+	const bobKp = new Keypair();
+	const bob = bobKp.publicKey;
 	svm.airdrop(adam, BigInt(LAMPORTS_PER_SOL * 100));
+	svm.airdrop(bob, BigInt(LAMPORTS_PER_SOL * 100));
 
 	const receiver = PublicKey.unique();
 	const deadline = 1767139200;
+	let to: PublicKey;
 
 	it("init_config", async () => {
 		//const keypair = adamKp;
@@ -72,7 +76,7 @@ describe("Svm", () => {
 		expect(configAcct.deposit.eq(balcExpected));
 	});
 
-	it("sending SOL", async () => {
+	it("sending SOL via SVM", async () => {
 		const blockhash = svm.latestBlockhash();
 		const amtLamports = 1_000_000n;
 		const ixs = [
@@ -91,21 +95,23 @@ describe("Svm", () => {
 		expect(balanceAfter).eq(amtLamports);
 	});
 
-	it("time travel", async () => {
+	it("time travel + send lamports", async () => {
 		const clock = svm.getClock();
 		ll("clock:", clock.slot, clock.unixTimestamp);
 
 		keypair = adamKp;
+		to = bob;
 		amount = 100;
 		tx = await program.methods
-			.paySol(bn(amount))
+			.transferLamports(bn(amount))
 			.accounts({
 				//config: configPbk,
-				user: keypair.publicKey,
+				from: keypair.publicKey,
+				to,
 			})
 			.signers([keypair])
 			.rpc();
-		ll("paySol tx:", tx);
+		ll("transferLamports tx:", tx);
 
 		clock.unixTimestamp = BigInt(deadline);
 		svm.setClock(clock);
@@ -114,14 +120,15 @@ describe("Svm", () => {
 		ll("clock1:", clock1.slot, clock1.unixTimestamp);
 
 		tx = await program.methods
-			.paySol(bn(amount))
+			.transferLamports(bn(amount))
 			.accounts({
 				//config: configPbk,
-				user: keypair.publicKey,
+				from: keypair.publicKey,
+				to,
 			})
 			.signers([keypair])
 			.rpc();
-		ll("paySol tx:", tx);
+		ll("transferLamports tx:", tx);
 
 		//const success = svm.sendTransaction(tx2);
 		//expect(success).instanceOf(TransactionMetadata);
